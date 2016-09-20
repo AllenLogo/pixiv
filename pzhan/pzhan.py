@@ -4,9 +4,10 @@ import http.cookiejar as cookielib
 import os.path
 import time
 import requests
-from bs4 import BeautifulSoup
 
+from bs4 import BeautifulSoup
 from mysql.MyDB import Up as UpDB
+
 #-----基本配置-----#
 
 #文件地址
@@ -72,19 +73,20 @@ def login():
         session.cookies.save()
 
 
-def downLoad_HTMLPage(url):
+def downLoad_HTMLPage(url, id):
     global session, header
     try:
-        with open("%s.txt" % url.split("?id=", 1)[1],"w",encoding="utf-8") as f:
+        print(url)
+        with open("%s.txt" % id, "w", encoding="utf-8") as f:
             f.write(GET(url))
     except Exception as value:
         print(value)
 
-def downLoad_HTMLImg(url):
+def downLoad_HTMLImg(url, name):
     global session, header
     try:
-        with open("p11.jpg", 'wb') as f:
-            resp1 = session.get(url, headers=headers)
+        with open("%s.jpg" % name, 'wb') as f:
+            resp1 = session.get(url, headers=header)
             for chunk in resp1.iter_content(chunk_size=512):
                 f.write(chunk)
             resp1.close()
@@ -96,16 +98,16 @@ def saveUp(url):
     soup = get_soup(GET(url))
     table = soup.find('table', attrs={'class': "ws_table"})
     try:
-        up = UpDB(pid=url.split("?id=", 1)[1], name=table.findAll('tr')[0].findAll('td')[1].text, url=url, recdate=date, padate=date)
+        up = UpDB(pid=url.split("id=", 1)[1], name=table.findAll('tr')[0].findAll('td')[1].text, url=url, recdate=date)
         up.save()
     except Exception as value:
         print(value)
 
 
 bookmarkurl = 'http://www.pixiv.net/bookmark.php?type=user&id={id}&rest=show&p={page}'
+
 def getBookMark(url):
     pass
 
 if __name__ == '__main__':
-    login()
-    saveUp('http://www.pixiv.net/member.php?id=6815602')
+    downLoad_HTMLImg('http://i3.pixiv.net/user-profile/img/2016/09/11/22/13/21/11482402_1d4bdd5ed3ac134f7e303521b97c9712.jpg', '6815602')
