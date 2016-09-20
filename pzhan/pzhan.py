@@ -73,7 +73,7 @@ def login():
         session.cookies.save()
 
 
-def downLoad_HTMLPage(url, id):
+def downLoad_HTMLPage(url, pid):
     global session, header
     try:
         print(url)
@@ -82,10 +82,10 @@ def downLoad_HTMLPage(url, id):
     except Exception as value:
         print(value)
 
-def downLoad_HTMLImg(url, name):
+def downLoad_HTMLImg(url, imgFile):
     global session, header
     try:
-        with open("%s.jpg" % name, 'wb') as f:
+        with open(imgFile, 'wb') as f:
             resp1 = session.get(url, headers=header)
             for chunk in resp1.iter_content(chunk_size=512):
                 f.write(chunk)
@@ -103,11 +103,28 @@ def saveUp(url):
     except Exception as value:
         print(value)
 
+def saveUp(pid, name, url):
+    date = time.strftime('%Y%m%d', time.localtime(time.time()))
+    try:
+        up = UpDB(pid=pid, name=name, url=url, recdate=date)
+        up.save()
+    except Exception as value:
+        print(value)
 
 bookmarkurl = 'http://www.pixiv.net/bookmark.php?type=user&id={id}&rest=show&p={page}'
 
-def getBookMark(url):
-    pass
+
+def getBookMark(bookmarkurlModel, pid, page):
+    HTMLData = GET(bookmarkurlModel.replace("{id}", pid).replace("{page}", page))
+    soup = get_soup(HTMLData)
+    userList = soup.find('div', attrs={'class': 'members'}).find('ul')
+    for userLi in userList.findAll('li'):
+        userA = userLi.find('a', attrs={'class': "ui-profile-popup"})
+        downLoad_HTMLImg(userA['data-profile_img'], userA['data-user_id'])
+        saveUp(userA['data-user_id'], userA['data-user_name'], "http://www.pixiv.net/%s" % userA['href'])
+    return len(userList)
 
 if __name__ == '__main__':
-    downLoad_HTMLImg('http://i3.pixiv.net/user-profile/img/2016/09/11/22/13/21/11482402_1d4bdd5ed3ac134f7e303521b97c9712.jpg', '6815602')
+    login()
+    #saveUp('http://www.pixiv.net/member.php?id=6815602')
+    getBookMark(bookmarkurl, "6815602", "2")
