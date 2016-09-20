@@ -1,0 +1,7 @@
+#LWP-Cookies-2.0
+Set-Cookie3: PHPSESSID=20249597_bd16f38430c672c57879506e0caf017c; path="/"; domain=".pixiv.net"; path_spec; domain_dot; expires="2016-10-19 07:23:36Z"; version=0
+Set-Cookie3: device_token=808ad93105908c6e232c08af462fdc86; path="/"; domain=".pixiv.net"; path_spec; domain_dot; expires="2016-10-19 07:23:36Z"; version=0
+Set-Cookie3: module_orders_mypage="%5B%7B%22name%22%3A%22hot_entries%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22everyone_new_illusts%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22sensei_courses%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22spotlight%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22featured_tags%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22contests%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22following_new_illusts%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22mypixiv_new_illusts%22%2C%22visible%22%3Atrue%7D%2C%7B%22name%22%3A%22booth_follow_items%22%2C%22visible%22%3Atrue%7D%5D"; path="/"; domain=".pixiv.net"; path_spec; domain_dot; expires="2017-09-19 07:23:36Z"; version=0
+Set-Cookie3: p_ab_id=1; path="/"; domain=".pixiv.net"; path_spec; domain_dot; expires="2021-09-19 07:23:36Z"; version=0
+Set-Cookie3: a_type=0; path="/"; domain="www.pixiv.net"; path_spec; expires="2016-09-20 07:23:36Z"; version=0
+Set-Cookie3: is_sensei_service_user=1; path="/"; domain="www.pixiv.net"; path_spec; expires="2016-09-20 07:23:36Z"; version=0

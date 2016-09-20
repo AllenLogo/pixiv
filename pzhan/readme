@@ -1,0 +1,7 @@
+第一步：
+获取某用户数据
+    0、个人信息 链接：http://www.pixiv.net/member.php?id={id}
+    1、作品 链接：http://www.pixiv.net/member_illust.php?id={id}
+    2、收藏 链接：http://www.pixiv.net/bookmark.php?id={id}
+    3、关注列表 链接：http://www.pixiv.net/bookmark.php?type=user&id={id}
+第二步：
