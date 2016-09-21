@@ -71,7 +71,6 @@ def getBookMark(bookmarkurlModel, pid, page):
 
 if __name__ == '__main__':
     login()
-    #saveUp('http://www.pixiv.net/member.php?id=6815602')
     page = 1
     userList = 48
     while userList == 48:
