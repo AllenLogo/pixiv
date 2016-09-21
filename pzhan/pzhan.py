@@ -3,38 +3,41 @@
 import os.path
 import time
 
-from utils import HttpUtils
+from utils import HttpUtils, FileUtils
 from mysql.MyDB import Up as UpDB
 
 
+login_data = {
+        'mode': 'login',
+        'pass': '159478632',
+        'pixiv_id': 'allenlogo',
+        'return_to': '/',
+        'skip': 1
+    }
 
 #登陆
 def login():
     if os.path.isfile(HttpUtils.cookiefile):
-        HttpUtils.session.cookies.load(HttpUtils.cookiefile, ignore_discard=True, ignore_expires=True)
+        HttpUtils.loadCookies()
     else:
-        HttpUtils.POST("https://www.pixiv.net/login.php", postData=HttpUtils.login_data, headers=HttpUtils.header)
-        HttpUtils.session.cookies.save()
+        HttpUtils.POST("https://www.pixiv.net/login.php", postData=login_data)
+        HttpUtils.saveCookies()
 
 
 def downLoad_HTMLPage(url, pid):
     try:
+        HTML_page = HttpUtils.GET(url)
         with open("%s.txt" % pid, "w", encoding="utf-8") as f:
-            f.write(HttpUtils.GET(url))
+            f.write(HTML_page.text)
     except Exception as value:
         print(value)
 
 def downLoad_HTMLImg(url, imgFile):
     try:
         imgFile = "%s.%s" % (imgFile, url[-3:])
-        if os.path.isfile(imgFile):
-            print("%s文件已存在" % imgFile)
-        else:
-            with open(imgFile, 'wb') as f:
-                resp1 = HttpUtils.GET(url)
-                for chunk in resp1.iter_content(chunk_size=512):
-                    f.write(chunk)
-                resp1.close()
+        resp1 = HttpUtils.GET(url)
+        FileUtils.saveFile_img(imgFile, resp1)
+        resp1.close()
     except Exception as value:
         print("%s_%s" % ("downLoad_HTMLImg", value))
 
@@ -66,7 +69,7 @@ def getBookMark(bookmarkurlModel, pid, page):
     for userLi in userList.findAll('li'):
         userA = userLi.find('a', attrs={'class': "ui-profile-popup"})
         downLoad_HTMLImg(userA['data-profile_img'], userA['data-user_id'])
-        saveUp(userA['data-user_id'], userA['data-user_name'], "http://www.pixiv.net/%s" % userA['href'])
+        #saveUp(userA['data-user_id'], userA['data-user_name'], "http://www.pixiv.net/%s" % userA['href'])
     return len(userList)
 
 if __name__ == '__main__':
