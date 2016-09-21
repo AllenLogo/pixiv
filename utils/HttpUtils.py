@@ -8,9 +8,9 @@ from bs4 import BeautifulSoup
 from .import FileUtils
 
 #文件地址
-basePath = FileUtils.createbasePath(__file__)
+basePath = FileUtils.getpath()
 #cookie保存地址
-cookiefile = FileUtils.joinPath(basePath, '/../conf/cookie/cookies_pixiv')
+cookiefile = FileUtils.joinPath(FileUtils.getdir(basePath), 'conf\cookie\cookies_pixiv')
 #请求头
 headerModel = {
     'Accept-Language': 'zh-CN,zh;q=0.8',
