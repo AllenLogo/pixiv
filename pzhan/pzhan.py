@@ -76,3 +76,4 @@ if __name__ == '__main__':
     while userList == 48:
         userList = getBookMark(bookmarkurl, "6815602", str(page))
         page += 1
+        print("已经扫描用户")
