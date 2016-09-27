@@ -3,7 +3,6 @@
 #三方库
 import http.cookiejar as cookielib
 import requests
-from bs4 import BeautifulSoup
 #私有库
 from .import FileUtils
 
@@ -29,15 +28,10 @@ def saveCookies(cookiefile=cookiefile):
     session.cookies = cookielib.LWPCookieJar(filename=cookiefile)
     session.cookies.save()
 
-#获取网页内容分析对象
-def get_soup(htmldata):
-    soup = BeautifulSoup(htmldata, "html.parser", exclude_encodings="utf-8")
-    return soup
-
 #GET请求
 def GET(url, headers=headerModel):
     try:
-        HTMLPage = session.get(url, headers=headers)
+        HTMLPage = session.get(url, headers=headers, timeout=600)
         return HTMLPage
     except Exception as value:
         print("%s_%s" % ("GET", value))
@@ -45,7 +39,7 @@ def GET(url, headers=headerModel):
 #POST请求
 def POST(url, postData={}, headers=headerModel):
     try:
-        HTMLPage = session.post(url, data=postData, headers=headers)
+        HTMLPage = session.post(url, data=postData, headers=headers, timeout=600)
         return HTMLPage
     except Exception as value:
         print("%s_%s" % ("POST", value))

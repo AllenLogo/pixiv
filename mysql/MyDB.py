@@ -16,17 +16,7 @@ engine = create_engine('mysql+pymysql://root:@localhost:3306/pixiv?charset=utf8'
 # 创建DBSession类型:
 DBSession = sessionmaker(bind=engine)
 
-# 定义User对象:
-class Up(Base):
-    # 表的名字:
-    __tablename__ = 'up'
-    # 表的结构:
-    pid = Column(String(12), primary_key=True)
-    name = Column(String(50))
-    url = Column(String(100))
-    recdate = Column(Integer)
-    padate = Column(Integer)
-
+class MyDBBase:
     def save(self):
         # 创建session对象:
         session = DBSession()
@@ -36,3 +26,24 @@ class Up(Base):
         session.commit()
         # 关闭session:
         session.close()
+
+class Up(Base, MyDBBase):
+    # 表的名字:
+    __tablename__ = 'up'
+    # 表的结构:
+    pid = Column(String(12), primary_key=True)
+    name = Column(String(50))
+    url = Column(String(100))
+    recdate = Column(Integer)
+    padate = Column(Integer)
+
+
+class Img(Base, MyDBBase):
+    # 表的名字:
+    __tablename__ = 'img'
+    # 表的结构:
+    pid = Column(String(11), primary_key=True)
+    name = Column(String(100))
+    url = Column(String(100))
+    tags = Column(String(200))
+    path = Column(String(100))

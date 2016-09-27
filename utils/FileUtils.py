@@ -1,5 +1,6 @@
 #-*- coding:utf-8 -*-
 
+#三方库
 import os.path
 from functools import wraps
 
@@ -27,9 +28,7 @@ def isdir(dirPath):
 def checkFile(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if exists(args[0]):
-            print("%s文件已存在" % args[0])
-        else:
+        if not exists(args[0]):
             result = func(*args, **kwargs)
             return result
     return wrapper
@@ -37,9 +36,7 @@ def checkFile(func):
 def checkDir(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if exists(args[0]):
-            print("%s文件夹已存在" % args[0])
-        else:
+        if not exists(args[0]):
             result = func(*args, **kwargs)
             return result
     return wrapper
