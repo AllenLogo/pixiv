@@ -12,6 +12,7 @@ memberurlModel = 'http://www.pixiv.net/member.php?id={id}'
 bookmarkuserurlModel = 'http://www.pixiv.net/bookmark.php?type=user&id={id}&rest=show&p={page}'
 memberillusturlModel = 'http://www.pixiv.net/member_illust.php?id={id}&type=all&p={page}'
 bookmarkurlModel = 'http://www.pixiv.net/bookmark.php?id={id}'
+mypixivurlModel = 'http://www.pixiv.net/mypixiv_all.php?id={id}'
 portraitDir = 'D:\pixiv'
 
 login_data = {
@@ -151,6 +152,6 @@ def getTags(soup):
 
 if __name__ == '__main__':
     login()
-    #scanningMemberillust('17296030', 20)
-    #print('saomiaoguanzhu')
-    scanningBookMark('20249597', 40)
+    scanningMemberillust('12249', 20)
+    print('saomiaoguanzhu')
+    scanningBookMark('12249', 40)
