@@ -12,7 +12,7 @@ def zip_dir(dirname,zipfilename):
     filelist = []
     if os.path.isfile(dirname):
         filelist.append(dirname)
-    else :
+    else:
         for root, dirs, files in os.walk(dirname):
             for name in files:
                 filelist.append(os.path.join(root, name))
@@ -25,5 +25,5 @@ def zip_dir(dirname,zipfilename):
     zf.close()
 
 if __name__ == '__main__':
-	import sys
-	zip_dir(sys.argv[1],sys.argv[2])
+    import sys
+    zip_dir(sys.argv[1],sys.argv[2])
