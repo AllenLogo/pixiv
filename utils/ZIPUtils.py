@@ -21,7 +21,7 @@ def zip_dir(dirname, zipfilename):
     for tar in filelist:
         arcname = tar[len(dirname):]
         #print arcname
-        zf.write(tar,arcname)
+        zf.write(tar, arcname)
     zf.close()
 
 if __name__ == '__main__':

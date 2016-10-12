@@ -5,7 +5,8 @@ import time
 from functools import wraps
 from utils import HttpUtils, FileUtils, HTMLUtils
 #私有库
-from mysql.MyDB import Up as UpDB, Img as ImgDB
+from mysql.MyDB import Up as UpDB
+from utils import ZIPUtils
 
 indexurl = 'http://www.pixiv.net'
 memberurlModel = 'http://www.pixiv.net/member.php?id={id}'
@@ -13,7 +14,8 @@ bookmarkuserurlModel = 'http://www.pixiv.net/bookmark.php?type=user&id={id}&rest
 memberillusturlModel = 'http://www.pixiv.net/member_illust.php?id={id}&type=all&p={page}'
 bookmarkurlModel = 'http://www.pixiv.net/bookmark.php?id={id}'
 mypixivurlModel = 'http://www.pixiv.net/mypixiv_all.php?id={id}'
-portraitDir = 'D:\pixiv'
+portraitDir = 'E:\pixiv'
+rootdata = '/data'
 
 login_data = {
         'mode': 'login',
@@ -34,35 +36,39 @@ def login():
 def getSoup(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-            soup = HTMLUtils.get_soup(HttpUtils.GET(args[0]))
+            soup = HTMLUtils.get_soup(HttpUtils.GET(args[0]).text)
             result = func(*args, soup=soup, **kwargs)
             return result
-
     return wrapper
 
+def getError(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+            try:
+                result = func(*args, **kwargs)
+                return result
+            except Exception as value:
+                print("函数：[%s]参数args：[%s]参数kwargs：[%s]异常：[%s]" % (func.__name__, args, kwargs, value))
+    return wrapper
 
 #提取用户信息
+@getError
 @getSoup
 def saveUp(url=None, soup=None):
     table = soup.find('table', attrs={'class': "ws_table"})
-    try:
-        saveUp(url.split("id=", 1)[1], table.findAll('tr')[0].findAll('td')[1].text, url)
-    except Exception as value:
-        print(value)
+    saveUp(url.split("id=", 1)[1], table.findAll('tr')[0].findAll('td')[1].text, url)
 
 #保存用户信息
+@getError
 def saveUp(pid, name, url):
     date = time.strftime('%Y%m%d', time.localtime(time.time()))
-    try:
-        up = UpDB(pid=pid, name=name, url=url, recdate=date)
-        up.save()
-    except Exception as value:
-        print(value)
+    up = UpDB(pid=pid, name=name, url=url, recdate=date)
+    up.save()
 
 #提取用户关注
-def getBookMark(bookmarkurl):
-    HTMLData = HttpUtils.GET(bookmarkurl)
-    soup = HTMLUtils.get_soup(HTMLData.text)
+@getError
+@getSoup
+def getBookMark(bookmarkurl, soup=None):
     userList = soup.find('div', attrs={'class': 'members'}).find('ul')
     for userLi in userList.findAll('li'):
         userA = userLi.find('a', attrs={'class': "ui-profile-popup"})
@@ -72,9 +78,11 @@ def getBookMark(bookmarkurl):
         HTMLUtils.downLoad_HTMLImg(userA['data-profile_img'], imgFile)
         saveUp(userA['data-user_id'], userA['data-user_name'], "http://www.pixiv.net/%s" % userA['href'])
         scanningMemberillust(userA['data-user_id'], 20)
+        ZIPUtils.zip_dir(FileUtils.joinPath(portraitDir, userA['data-user_id']), FileUtils.joinPath(rootdata, "zip", "%s.zip" % userA['data-user_id']))
     return len(userList)
 
 #扫描用户
+@getError
 def scanningBookMark(pid, lenth):
     print(pid)
     page = 1
@@ -85,54 +93,50 @@ def scanningBookMark(pid, lenth):
         page += 1
 
 #扫描用户作品
+@getError
 def scanningMemberillust(pid, lenth):
     page = 1
     userList = lenth
     while userList == lenth:
-        try:
-            userList = getMemberillust(memberillusturlModel.replace("{id}", pid).replace("{page}", str(page)), pid)
-            print("已经扫描作品%d" % ((page - 1) * lenth + userList))
-            page += 1
-        except Exception as value:
-            print(value)
+        userList = getMemberillust(memberillusturlModel.replace("{id}", pid).replace("{page}", str(page)), pid)
+        print("已经扫描用户[%s]作品[%d]" % (pid, (page - 1) * lenth + userList))
+        page += 1
 
 #提取作品
-def getMemberillust(memberillusturl, pid):
-    HTMLData = HttpUtils.GET(memberillusturl)
-    soup = HTMLUtils.get_soup(HTMLData.text)
+@getError
+@getSoup
+def getMemberillust(memberillusturl, pid, soup=None):
     illusts = soup.find('ul', attrs={'class': '_image-items'})
+    i = 0
     for illust in illusts.findAll('li'):
         illustA = illust.find('a')
         checkMemberillust("%s%s" % (indexurl, illustA['href']), pid)
-    return len(illusts)
+        i = i + 1
+    return i
 
 #读取作品图片，标签
-def checkMemberillust(memberillusturl, pid):
-    HTMLData = HttpUtils.GET(memberillusturl)
-    soup = HTMLUtils.get_soup(HTMLData.text)
-    try:
-        #读取标签
-        tags = getTags(soup)
-        img = soup.find('div', attrs={'class': '_layout-thumbnail ui-modal-trigger'})
-        if img:
-            FileUtils.createdir(FileUtils.joinPath(portraitDir, pid))
-            imgFile = FileUtils.joinPath(portraitDir, pid, ("%s.%s" % (memberillusturl.split('=', 2)[2], img.find('img')['src'][-3:])))
-            HTMLUtils.downLoad_HTMLImg(img.find('img')['src'], imgFile)
-        else:
-            img = soup.find('div', attrs={'class': 'works_display'})
-            if img.find('a', attrs={'class': r' _work multiple '}):
-                img1 = img.find('a', attrs={'class': r' _work multiple '})
-            if img.find('a', attrs={'class': r' _work manga multiple '}):
-                img1 = img.find('a', attrs={'class': r' _work manga multiple '})
-            checkMemberillust_medium("%s%s%s" % (indexurl, '/', img1['href']), pid, img1['href'].split('=', 2)[2])
-    except Exception as value:
-        print(memberillusturl)
-        print(value)
+@getError
+@getSoup
+def checkMemberillust(memberillusturl, pid, soup=None):
+    #读取标签
+    tags = getTags(soup)
+    img = soup.find('div', attrs={'class': '_layout-thumbnail ui-modal-trigger'})
+    if img:
+        FileUtils.createdir(FileUtils.joinPath(portraitDir, pid))
+        imgFile = FileUtils.joinPath(portraitDir, pid, ("%s.%s" % (memberillusturl.split('=', 2)[2], img.find('img')['src'][-3:])))
+        HTMLUtils.downLoad_HTMLImg(img.find('img')['src'], imgFile)
+    else:
+        img = soup.find('div', attrs={'class': 'works_display'})
+        if img.find('a', attrs={'class': r' _work multiple '}):
+            img1 = img.find('a', attrs={'class': r' _work multiple '})
+        if img.find('a', attrs={'class': r' _work manga multiple '}):
+            img1 = img.find('a', attrs={'class': r' _work manga multiple '})
+        checkMemberillust_medium("%s%s%s" % (indexurl, '/', img1['href']), pid, img1['href'].split('=', 2)[2])
 
 #读取画集
-def checkMemberillust_medium(memberillusturl, pid, medium_id):
-    HTMLData = HttpUtils.GET(memberillusturl)
-    soup = HTMLUtils.get_soup(HTMLData.text)
+@getError
+@getSoup
+def checkMemberillust_medium(memberillusturl, pid, medium_id, soup=None):
     sections = soup.find('section', attrs={'class': 'manga'})
     for section in sections.findAll('div', attrs={'class': 'item-container'}):
         img = section.find('a', attrs={'class': "full-size-container _ui-tooltip"})
@@ -152,6 +156,6 @@ def getTags(soup):
 
 if __name__ == '__main__':
     login()
-    scanningMemberillust('12249', 20)
+    scanningMemberillust('14657', 20)
     print('saomiaoguanzhu')
-    scanningBookMark('12249', 40)
+    scanningBookMark('14657', 40)
