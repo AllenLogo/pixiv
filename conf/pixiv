@@ -1,0 +1,15 @@
+[url]
+indexurl = http://www.pixiv.net
+loginurl = https://accounts.pixiv.net/login?lang=zh&source=pc&view_type=page&ref=wwwtop_accounts_index
+memberurlModel = http://www.pixiv.net/member.php?id={id}
+bookmarkuserurlModel = http://www.pixiv.net/bookmark.php?type=user&id={id}&rest=show&p={page}
+memberillusturlModel = http://www.pixiv.net/member_illust.php?id={id}&type=all&p={page}
+bookmarkurlModel = http://www.pixiv.net/bookmark.php?id={id}
+mypixivurlModel = http://www.pixiv.net/mypixiv_all.php?id={id}
+
+[dir]
+portraitDir = /data/pixiv
+rootdata = /data
+
+[login]
+login_data = {'g_recaptcha_response': '','captcha': '','pixiv_id': 'allenlogo','password': '159478632','post_key': '1f64b52005cebdb3dc89e6768fac76e7','source': 'pc'}

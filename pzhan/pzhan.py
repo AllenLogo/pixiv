@@ -1,37 +1,33 @@
 #-*- coding:utf-8 -*-
 
+import sys
+sys.path.append("..")
 #三方库
 import time
 from functools import wraps
 from utils import HttpUtils, FileUtils, HTMLUtils
+import json
 #私有库
 from mysql.MyDB import Up as UpDB
 from utils import ZIPUtils
+from utils import ConfUtils
 
-indexurl = 'http://www.pixiv.net'
-memberurlModel = 'http://www.pixiv.net/member.php?id={id}'
-bookmarkuserurlModel = 'http://www.pixiv.net/bookmark.php?type=user&id={id}&rest=show&p={page}'
-memberillusturlModel = 'http://www.pixiv.net/member_illust.php?id={id}&type=all&p={page}'
-bookmarkurlModel = 'http://www.pixiv.net/bookmark.php?id={id}'
-mypixivurlModel = 'http://www.pixiv.net/mypixiv_all.php?id={id}'
-portraitDir = 'E:\pixiv'
-rootdata = '/data'
+indexurl = ConfUtils.cf.get("url", "indexurl")
+loginurl = ConfUtils.cf.get("url", "loginurl")
+memberurlModel = ConfUtils.cf.get("url", "memberurlModel")
+bookmarkuserurlModel = ConfUtils.cf.get("url", "bookmarkuserurlModel")
+memberillusturlModel = ConfUtils.cf.get("url", "memberillusturlModel")
+bookmarkurlModel = ConfUtils.cf.get("url", "bookmarkurlModel")
+mypixivurlModel = ConfUtils.cf.get("url", "mypixivurlModel")
+portraitDir = ConfUtils.cf.get("dir", "portraitDir")
+rootdata = ConfUtils.cf.get("dir", "rootdata")
 
-login_data = {
-        'mode': 'login',
-        'pass': '159478632',
-        'pixiv_id': 'allenlogo',
-        'return_to': '/',
-        'skip': 1
-    }
+login_data = eval(ConfUtils.cf.get("login", "login_data"))
 
-#登陆
-def login():
-    if FileUtils.exists(HttpUtils.cookiefile) & FileUtils.isfile(HttpUtils.cookiefile):
-        HttpUtils.loadCookies()
-    else:
-        HttpUtils.POST("https://www.pixiv.net/login.php", postData=login_data)
-        HttpUtils.saveCookies()
+mytags = ['MHX', 'モンハン', 'モンスターハンタースピリッツ']
+
+pixivListNew = []
+pixivListOld = []
 
 def getSoup(func):
     @wraps(func)
@@ -50,6 +46,23 @@ def getError(func):
             except Exception as value:
                 print("函数：[%s]参数args：[%s]参数kwargs：[%s]异常：[%s]" % (func.__name__, args, kwargs, value))
     return wrapper
+
+@getError
+@getSoup
+def getpost_key(url, soup=None):
+    return soup.find("input", attrs={"name": "post_key"})['value']
+
+def login():
+    post_key = getpost_key(loginurl)
+    print(post_key)
+    if post_key is None:
+        print("获取post_key失败")
+        return False
+    login_data['post_key'] = post_key
+    data = json.loads(HttpUtils.POST("https://accounts.pixiv.net/api/login?lang=zh", postData=login_data).text)
+    if data['error'] is False:
+        print("登陆成功")
+        return True
 
 #提取用户信息
 @getError
@@ -77,29 +90,43 @@ def getBookMark(bookmarkurl, soup=None):
         imgFile = FileUtils.joinPath(portraitDir, userA['data-user_id'], ("%s.%s" % (userA['data-user_id'], userA['data-profile_img'][-3:])))
         HTMLUtils.downLoad_HTMLImg(userA['data-profile_img'], imgFile)
         saveUp(userA['data-user_id'], userA['data-user_name'], "http://www.pixiv.net/%s" % userA['href'])
-        scanningMemberillust(userA['data-user_id'], 20)
-        ZIPUtils.zip_dir(FileUtils.joinPath(portraitDir, userA['data-user_id']), FileUtils.joinPath(rootdata, "zip", "%s.zip" % userA['data-user_id']))
-    return len(userList)
+        if userA['data-user_id'] not in pixivListNew and userA['data-user_id'] not in pixivListOld:
+            pixivListNew.append(userA['data-user_id'])
+        # scanningMemberillust(userA['data-user_id'], 20)
+        # ZIPUtils.zip_dir(FileUtils.joinPath(portraitDir, userA['data-user_id']), FileUtils.joinPath(rootdata, "zip", "%s.zip" % userA['data-user_id']))
+    return getbookmarkuserpageCount(soup)
 
 #扫描用户
 @getError
-def scanningBookMark(pid, lenth):
-    print(pid)
+def scanningBookMark(pid):
     page = 1
-    userList = lenth
-    while userList == lenth:
-        userList = getBookMark(bookmarkuserurlModel.replace("{id}", pid).replace("{page}", str(page)))
-        print("已经扫描用户%d" % ((page-1)*lenth+userList))
+    pageCount = 1
+    while page <= pageCount:
+        pageCount = getBookMark(bookmarkuserurlModel.replace("{id}", pid).replace("{page}", str(page)))
         page += 1
+
+@getError
+def getmemberillustpageCount(soup):
+    '''获取作品'''
+    if soup.find('ul', attrs={'class': 'page-list'}) is not None:
+        liList = soup.find('ul', attrs={'class': 'page-list'}).findAll('li')
+        return int(liList[len(liList)-1].text)
+    return 1
+
+@getError
+def getbookmarkuserpageCount(soup):
+    if soup.find('div', attrs={'class': 'pages'}) is not None and soup.find('div', attrs={'class': 'pages'}).find('ol') is not None:
+        liList = soup.find('div', attrs={'class': 'pages'}).find('ol').findAll('li')
+        return int(liList[len(liList)-2].text)
+    return 1
 
 #扫描用户作品
 @getError
-def scanningMemberillust(pid, lenth):
+def scanningMemberillust(pid):
     page = 1
-    userList = lenth
-    while userList == lenth:
-        userList = getMemberillust(memberillusturlModel.replace("{id}", pid).replace("{page}", str(page)), pid)
-        print("已经扫描用户[%s]作品[%d]" % (pid, (page - 1) * lenth + userList))
+    pageCount = 1
+    while page <= pageCount:
+        pageCount = getMemberillust(memberillusturlModel.replace("{id}", pid).replace("{page}", str(page)), pid)
         page += 1
 
 #提取作品
@@ -107,12 +134,10 @@ def scanningMemberillust(pid, lenth):
 @getSoup
 def getMemberillust(memberillusturl, pid, soup=None):
     illusts = soup.find('ul', attrs={'class': '_image-items'})
-    i = 0
     for illust in illusts.findAll('li'):
         illustA = illust.find('a')
         checkMemberillust("%s%s" % (indexurl, illustA['href']), pid)
-        i = i + 1
-    return i
+    return getmemberillustpageCount(soup)
 
 #读取作品图片，标签
 @getError
@@ -120,18 +145,20 @@ def getMemberillust(memberillusturl, pid, soup=None):
 def checkMemberillust(memberillusturl, pid, soup=None):
     #读取标签
     tags = getTags(soup)
-    img = soup.find('div', attrs={'class': '_layout-thumbnail ui-modal-trigger'})
-    if img:
-        FileUtils.createdir(FileUtils.joinPath(portraitDir, pid))
-        imgFile = FileUtils.joinPath(portraitDir, pid, ("%s.%s" % (memberillusturl.split('=', 2)[2], img.find('img')['src'][-3:])))
-        HTMLUtils.downLoad_HTMLImg(img.find('img')['src'], imgFile)
-    else:
-        img = soup.find('div', attrs={'class': 'works_display'})
-        if img.find('a', attrs={'class': r' _work multiple '}):
-            img1 = img.find('a', attrs={'class': r' _work multiple '})
-        if img.find('a', attrs={'class': r' _work manga multiple '}):
-            img1 = img.find('a', attrs={'class': r' _work manga multiple '})
-        checkMemberillust_medium("%s%s%s" % (indexurl, '/', img1['href']), pid, img1['href'].split('=', 2)[2])
+    tmp = [val for val in tags if val in mytags]
+    if len(tmp) != 0:
+        img = soup.find('div', attrs={'class': '_layout-thumbnail ui-modal-trigger'})
+        if img:
+            FileUtils.createdir(FileUtils.joinPath(portraitDir, pid))
+            imgFile = FileUtils.joinPath(portraitDir, pid, ("%s.%s" % (memberillusturl.split('=', 2)[2], img.find('img')['src'][-3:])))
+            HTMLUtils.downLoad_HTMLImg(img.find('img')['src'], imgFile)
+        else:
+            img = soup.find('div', attrs={'class': 'works_display'})
+            if img.find('a', attrs={'class': r' _work multiple '}):
+                img1 = img.find('a', attrs={'class': r' _work multiple '})
+            if img.find('a', attrs={'class': r' _work manga multiple '}):
+                img1 = img.find('a', attrs={'class': r' _work manga multiple '})
+            checkMemberillust_medium("%s%s%s" % (indexurl, '/', img1['href']), pid, img1['href'].split('=', 2)[2])
 
 #读取画集
 @getError
@@ -154,8 +181,20 @@ def getTags(soup):
         Tags.append(tag.find('a', attrs={'class': 'text'}).text)
     return Tags
 
+def start():
+    while len(pixivListNew) != 0:
+        if pixivListNew[0] in pixivListOld:
+            pixivListNew.pop()
+        else:
+            pid = pixivListNew[0]
+            scanningMemberillust(pid)
+            pixivListOld.append(pid)
+            pixivListNew.pop()
+            scanningBookMark(pid)
+
 if __name__ == '__main__':
-    login()
-    scanningMemberillust('14657', 20)
-    print('saomiaoguanzhu')
-    scanningBookMark('14657', 40)
+    if login() is True:
+        pixivListNew.append("747546")
+        start()
+    else:
+        print("登陆失败")

@@ -37,7 +37,6 @@ class Up(Base, MyDBBase):
     recdate = Column(Integer)
     padate = Column(Integer)
 
-
 class Img(Base, MyDBBase):
     # 表的名字:
     __tablename__ = 'img'
