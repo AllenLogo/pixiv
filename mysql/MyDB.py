@@ -4,7 +4,7 @@
 数据库操作封装
 """
 
-from sqlalchemy import Column, String, create_engine, Integer
+from sqlalchemy import Column, String, create_engine, Text, Integer, TIMESTAMP
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -27,22 +27,27 @@ class MyDBBase:
         # 关闭session:
         session.close()
 
-class Up(Base, MyDBBase):
-    # 表的名字:
-    __tablename__ = 'up'
-    # 表的结构:
-    pid = Column(String(12), primary_key=True)
-    name = Column(String(50))
-    url = Column(String(100))
-    recdate = Column(Integer)
-    padate = Column(Integer)
+    def find(self, **kwargs):
+        session = DBSession()
+        lists = []
+        lists = session.query(self.__class__).filter_by(**kwargs).all()
+        #print(session.query(self.__class__).filter(self.__class__.pid == 1).first())
+        return lists
 
 class Img(Base, MyDBBase):
     # 表的名字:
     __tablename__ = 'img'
     # 表的结构:
-    pid = Column(String(11), primary_key=True)
-    name = Column(String(100))
+    pid = Column(String(12), primary_key=True)
+    author = Column(String(12))
     url = Column(String(100))
-    tags = Column(String(200))
-    path = Column(String(100))
+    x = Column(Integer)
+    y = Column(Integer)
+    date = Column(TIMESTAMP)
+
+class Tags(Base, MyDBBase):
+    __tablename__ = 'tags'
+    id = Column(Integer, primary_key=True)
+    pid = Column(String(12))
+    tag = Column(Text)
+    date = Column(TIMESTAMP, autoincrement=True)

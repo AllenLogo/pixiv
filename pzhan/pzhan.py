@@ -3,12 +3,10 @@
 import sys
 sys.path.append("..")
 #三方库
-import time
 from functools import wraps
 from utils import HttpUtils, FileUtils, HTMLUtils
 import json
 #私有库
-from mysql.MyDB import Up as UpDB
 from utils import ConfUtils
 
 indexurl = ConfUtils.cf.get("url", "indexurl")
@@ -60,20 +58,6 @@ def login():
     data = json.loads(HttpUtils.POST("https://accounts.pixiv.net/api/login?lang=zh", postData=login_data).text)
     if data['error'] is False:
         return True
-
-#提取用户信息
-@getError
-@getSoup
-def saveUp(url=None, soup=None):
-    table = soup.find('table', attrs={'class': "ws_table"})
-    saveUp(url.split("id=", 1)[1], table.findAll('tr')[0].findAll('td')[1].text, url)
-
-#保存用户信息
-@getError
-def saveUp(pid, name, url):
-    date = time.strftime('%Y%m%d', time.localtime(time.time()))
-    up = UpDB(pid=pid, name=name, url=url, recdate=date)
-    up.save()
 
 #提取用户关注
 @getError
