@@ -34,7 +34,7 @@ class MyDBBase:
         #print(session.query(self.__class__).filter(self.__class__.pid == 1).first())
         return lists
 
-class Img(Base, MyDBBase):
+class ImgDB(Base, MyDBBase):
     # 表的名字:
     __tablename__ = 'img'
     # 表的结构:
@@ -45,7 +45,7 @@ class Img(Base, MyDBBase):
     y = Column(Integer)
     date = Column(TIMESTAMP)
 
-class Tags(Base, MyDBBase):
+class TagsDB(Base, MyDBBase):
     __tablename__ = 'tags'
     id = Column(Integer, primary_key=True)
     pid = Column(String(12))
