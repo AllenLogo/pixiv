@@ -2,10 +2,14 @@
 
 import sys
 sys.path.append("..")
+import requests
 #三方库
 from functools import wraps
 from utils import HttpUtils, FileUtils, HTMLUtils
 import json
+import os
+from PIL import Image
+import time
 #私有库
 from utils import ConfUtils
 from mysql.MyDB import ImgDB, TagsDB
@@ -19,7 +23,7 @@ bookmarkurlModel = ConfUtils.cf.get("url", "bookmarkurlModel")
 mypixivurlModel = ConfUtils.cf.get("url", "mypixivurlModel")
 portraitDir = ConfUtils.cf.get("dir", "portraitDir")
 rootdata = ConfUtils.cf.get("dir", "rootdata")
-
+number = int(ConfUtils.cf.get("download", "number"))
 login_data = eval(ConfUtils.cf.get("login", "login_data"))
 
 mytags = ['MHX', 'モンハン', 'モンスターハンタースピリッツ']
@@ -30,8 +34,10 @@ pixivListOld = []
 def getSoup(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-            soup = HTMLUtils.get_soup(HttpUtils.GET(args[0]).text)
+            resp = HttpUtils.GET(args[0])
+            soup = HTMLUtils.get_soup(resp.text)
             result = func(*args, soup=soup, **kwargs)
+            resp.close()
             return result
     return wrapper
 
@@ -42,7 +48,7 @@ def getError(func):
                 result = func(*args, **kwargs)
                 return result
             except Exception as value:
-                print("函数：[%s]参数args：[%s]参数kwargs：[%s]异常：[%s]" % (func.__name__, args, kwargs, value))
+                print("函数：[%s]参数args：[%s]参数kwargs：[%s]异常：[%s]" % (func.__name__, args, {k: v for(k, v) in kwargs.items() if k != 'soup'}, value))
     return wrapper
 
 @getError
@@ -104,14 +110,8 @@ def getbookmarkuserpageCount(soup):
 @getError
 def scanningMemberillust(pid):
     print("扫描用户[%s]作品开始" % pid)
-    memberillust = []
-    getMemberillustV2(memberillusturlModel.replace("{id}", pid).replace("{page}", "1"), pid, 1, memberillust=memberillust)
-    print("扫描用户[%s]作品[%d]结束" % (pid, len(memberillust)))
-    imgs = ImgDB()
-    imgList = [img.url for img in imgs.find(author=pid)]
-    downLoadURL = [url for url in memberillust if url not in imgList]
-    for url in downLoadURL:
-        checkMemberillust(url, pid)
+    getMemberillustV2(memberillusturlModel.replace("{id}", pid).replace("{page}", "1"), pid, 1)
+    print("扫描用户[%s]作品结束" % pid)
 
 
 @getError
@@ -123,6 +123,12 @@ def getMemberillustV2(memberillusturl, pid, page, memberillust=[], soup=None):
     for illust in illusts.findAll('li'):
         illustA = illust.find('a')
         memberillust.append("%s%s" % (indexurl, illustA['href']))
+        imgs = ImgDB()
+        imgList = [img.url for img in imgs.find(author=pid)]
+        downLoadURL = [url for url in memberillust if url not in imgList]
+        for url in downLoadURL:
+            time.sleep(10)
+            checkMemberillust(url, pid)
     page += 1
     getMemberillustV2(memberillusturlModel.replace("{id}", pid).replace("{page}", str(page)), pid, page, memberillust=memberillust)
 
@@ -132,16 +138,17 @@ def getMemberillustV2(memberillusturl, pid, page, memberillust=[], soup=None):
 def checkMemberillust(memberillusturl, pid, soup=None):
     #读取标签
     tags = getTags(soup)
+    imgName = getName(soup)
     tmp = [val for val in tags if val in mytags]
     if len(tmp) != 0:
-        img = soup.find('div', attrs={'class': '_layout-thumbnail ui-modal-trigger'})
+        img = soup.find('img', attrs={'alt': imgName})
         if img:
             imgFile = FileUtils.joinPath(portraitDir, FileUtils.getfile(img['src']))
             if FileUtils.exists(imgFile):
                 print("文件已存在[%s]" % imgFile)
             else:
-                print("开始下载图片[%s]" % imgFile)
-                HTMLUtils.downLoad_HTMLImg(img.find('img')['src'], imgFile)
+                print("开始下载图片[%s][%s]" % (imgFile, img['src']))
+                downLoad(img['src'], imgFile)
                 print("下载图片[%s]结束" % imgFile)
         else:
             img = soup.find('div', attrs={'class': 'works_display'})
@@ -153,7 +160,6 @@ def checkMemberillust(memberillusturl, pid, soup=None):
                 checkMemberillust_medium("%s%s%s" % (indexurl, '/', img1['href']), pid, img1['href'].split('=', 2)[2])
 
 #读取画集
-@getError
 @getSoup
 def checkMemberillust_medium(memberillusturl, pid, medium_id, soup=None):
     sections = soup.find('section', attrs={'class': 'manga'})
@@ -167,15 +173,40 @@ def checkMemberillust_medium(memberillusturl, pid, medium_id, soup=None):
             print("文件已存在[%s]" % imgFile)
         else:
             print("开始下载图片[%s]" % imgFile)
-            HTMLUtils.downLoad_HTMLImg(img['src'], imgFile)
+            downLoad(img['src'], imgFile)
             print("下载图片[%s]结束" % imgFile)
 
 def getTags(soup):
     Tags = []
-    tags = soup.find('span', attrs={'class': 'tags-container'}).find('ul')
+    tags = soup.find('span', attrs={'class': 'tags-container'}).find('ul').findAll('li')
     for tag in tags:
         Tags.append(tag.find('a', attrs={'class': 'text'}).text)
-    return Tags.sort(reverse=True)
+    return Tags
+
+def getName(soup):
+    name = soup.find('div', attrs={'class': 'ui-expander-target'}).find('h1', attrs={'class': 'title'})
+    return name.text
+
+def downLoad(src, imgFile, loadNumber=1):
+    if number < loadNumber:
+        os.remove(imgFile)
+        return None
+    try:
+        ir = requests.get(src)
+        if ir.status_code == 200:
+            open('logo.jpg', 'wb').write(ir.content)
+        f = open(imgFile, "wb")
+        im = Image.open(f)
+        f.close()
+        x, y = im.size
+        return {'imagename': FileUtils.getfile(imgFile), 'image_x': x, 'image_y': y}
+    except Exception as v:
+        print(v)
+        # f.close()
+        # print("第%d次下载出错共%d次" % (loadNumber, number))
+        # loadNumber += 1
+        # time.sleep(10)
+        # downLoad(src, imgFile, loadNumber=loadNumber)
 
 def start():
     while len(pixivListNew) != 0:
@@ -187,6 +218,8 @@ def start():
             # pixivListOld.append(pid)
             del pixivListNew[0]
             #scanningBookMark(pid)
+        if int(time.strftime("%H", time.localtime())) <= 23:
+            break
 
 if __name__ == '__main__':
     if login() is True:

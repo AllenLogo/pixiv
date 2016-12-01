@@ -4,7 +4,7 @@
 数据库操作封装
 """
 
-from sqlalchemy import Column, String, create_engine, Text, Integer, TIMESTAMP
+from sqlalchemy import Column, String, create_engine, Text, Integer, TIMESTAMP,MetaData
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -51,3 +51,7 @@ class TagsDB(Base, MyDBBase):
     pid = Column(String(12))
     tag = Column(Text)
     date = Column(TIMESTAMP, autoincrement=True)
+
+if __name__ == '__main__':
+    #Base.metadata.create_all(engine)
+    print(ImgDB().find(author='12'))

@@ -28,8 +28,7 @@ def downLoad_HTMLImg(url):
     return HttpUtils.GET(url)
 
 #下载图片
-@MyException.raiseException
-def downLoad_HTMLImg(url, imgFile):
-    resp1 = HttpUtils.GET(url)
+def downLoad_HTMLImg(url, imgFile, headers):
+    resp1 = HttpUtils.GET(url, headers=headers)
     FileUtils.saveFile_img(imgFile, resp1)
     resp1.close()
