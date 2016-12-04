@@ -1,6 +1,5 @@
 #-*- coding:utf-8 -*-
 
-#三方库
 import os.path
 from functools import wraps
 

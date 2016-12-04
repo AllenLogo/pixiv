@@ -8,10 +8,10 @@ def createLogger(fileName, name, **kwargs):
     if "fmt" in kwargs:
         fmt = kwargs["fmt"]
 
-    formatter = logging.Formatter(fmt)  # 实例化formatter
-    handler.setFormatter(formatter)  # 为handler添加formatter
+    formatter = logging.Formatter(fmt)
+    handler.setFormatter(formatter)
 
-    logger = logging.getLogger(name)  # 获取名为tst的logger
-    logger.addHandler(handler)  # 为logger添加handler
+    logger = logging.getLogger(name)
+    logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
     return logger

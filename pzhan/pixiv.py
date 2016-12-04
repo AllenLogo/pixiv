@@ -11,17 +11,15 @@
 @time: 2016/11/28 12:46
 """
 
-#三方库
-import os
+import sys
+sys.path.append("..")
 import re
 import json
 import copy
 import time
 from functools import wraps
 from PIL import Image
-#私有库
 from utils import ConfUtils
-from mysql.MyDB import ImgDB, TagsDB
 from utils import HttpUtils, FileUtils, HTMLUtils
 
 indexurl = ConfUtils.cf.get("url", "indexurl")
@@ -29,6 +27,7 @@ loginurl = ConfUtils.cf.get("url", "loginurl")
 login_data = eval(ConfUtils.cf.get("login", "login_data"))
 memberillusturlModel = ConfUtils.cf.get("url", "memberillusturlModel")
 work_workmultipleurl = ConfUtils.cf.get("url", 'work_workmultipleurl')
+bookmarkuserurlModel = ConfUtils.cf.get("url", "bookmarkuserurlModel")
 number = int(ConfUtils.cf.get("download", "number"))
 portraitDir = ConfUtils.cf.get("dir", "portraitDir")
 
@@ -42,7 +41,6 @@ def getSoup(func):
         resp = HttpUtils.GET(args[0])
         soup = HTMLUtils.get_soup(resp.text)
         result = func(*args, soup=soup, **kwargs)
-        resp.close()
         return result
     return wrapper
 
@@ -69,7 +67,7 @@ def scanningMemberillust(pid):
 @getSoup
 def getMemberillustV2(memberillusturl, pid, page, soup=None):
     '''
-    work_work-单图,work_workugoku-illust-动图，work_workmultiple-多图,work_workmangamultiple-类似漫画
+    work_work-one img,work_workugoku-illust-active img，work_workmultiple-more img,work_workmangamultiple-imgs
     :param imgDB:
     :param memberillusturl:
     :param pid:
@@ -85,13 +83,12 @@ def getMemberillustV2(memberillusturl, pid, page, soup=None):
             illustA = illust.find('a')
             imgPid = getPid(illustA['href'])
             imgClasss = "".join(illustA['class'])
-            #if len(imgDB.find(author=pid, pid=imgPid)) != 0: continue
             if imgClasss == 'work_work':
                 work_workStep1("%s%s" % (indexurl, illustA['href']), pid, imgPid)
             elif imgClasss == 'work_workmultiple':
                 work_workmultipleStep1("%s%s" % (indexurl, illustA['href']), pid, imgPid)
         except Exception as error:
-            print("Error", error)
+            print("Error", str(error))
     page += 1
     getMemberillustV2(memberillusturlModel.replace("{id}", pid).replace("{page}", str(page)), pid, page)
 
@@ -103,7 +100,6 @@ def getPid(Str):
         raise Exception("id error")
 
 def getmemberillustpageCount(soup):
-    '''获取作品'''
     if soup.find('ul', attrs={'class': 'page-list'}) is not None:
         liList = soup.find('ul', attrs={'class': 'page-list'}).findAll('li')
         return int(liList[len(liList)-1].text)
@@ -116,7 +112,7 @@ def work_workStep1(url, pid, imgPid, soup=None):
     img = soup.find('img', attrs={'alt': imgName, 'class': 'original-image'})
     imgSrc = img['data-src']
     headers = copy.copy(HttpUtils.downLoadHead)
-    headers[':path'] = imgSrc[imgSrc.find('img-master')-1:]
+    headers[':path'] = imgSrc[imgSrc.find('.pixiv.net/')+10:]
     headers['referer'] = headers['referer'].replace("{id}", pid).replace('{imgid}', imgPid)
     downLoad(imgSrc, portraitDir + FileUtils.getfile(imgSrc), headers)
 
@@ -142,15 +138,14 @@ def work_workmultipleStep3(memberillusturl, pid, imgPid, soup=None):
     downLoad(imgSrc, portraitDir+FileUtils.getfile(imgSrc), headers)
 
 def downLoad(src, imgFile, headers):
-    resp1 = HttpUtils.GET(src, Myheaders=headers)
-    FileUtils.saveFile_img(imgFile, resp1)
-    resp1.close()
-    time.sleep(1)
-    f = open(imgFile, "rb")
-    im = Image.open(f)
-    f.close()
-    x, y = im.size
-    print({'imagename': FileUtils.getfile(imgFile), 'image_x': x, 'image_y': y})
+    try:
+        HTMLUtils.downLoad_HTMLImg(src, imgFile, headers=headers)
+        im = Image.open(imgFile)
+        x, y = im.size
+        print({'imagename': FileUtils.getfile(imgFile), 'image_x': x, 'image_y': y})
+    except Exception as error:
+        print("downLoad function error:" + error)
+        raise
 
 def getTags(soup):
     Tags = []
@@ -166,3 +161,46 @@ def getName(soup):
     else:
         name = soup.find('div', attrs={'class': '_unit _work-detail-unit'}).find('h1', attrs={'class': 'title'})
     return name.text
+
+def getbookmarkuserpageCount(soup):
+    if soup.find('div', attrs={'class': 'pages'}) is not None and soup.find('div', attrs={'class': 'pages'}).find('ol') is not None:
+        liList = soup.find('div', attrs={'class': 'pages'}).find('ol').findAll('li')
+        return int(liList[len(liList)-2].text)
+    return 1
+
+@getSoup
+def getBookMarkV2(bookmarkurl, pid, page, bookMark=[], soup=None):
+    if page > getbookmarkuserpageCount(soup):
+        return
+    userList = soup.find('div', attrs={'class': 'members'}).find('ul')
+    for userLi in userList.findAll('li'):
+        userA = userLi.find('a', attrs={'class': "ui-profile-popup"})
+        bookMark.append(userA['data-user_id'])
+    page += 1
+    getBookMarkV2(bookmarkuserurlModel.replace("{id}", pid).replace("{page}", "1"), pid, page)
+
+def scanningBookMark(pid):
+    bookMarks = []
+    getBookMarkV2(bookmarkuserurlModel.replace("{id}", pid).replace("{page}", "1"), pid, 1, bookMark=bookMarks)
+    newBookMarks = [bookMark for bookMark in bookMarks if bookMark not in pixivListNew and bookMark not in pixivListOld]
+    pixivListNew.extend(newBookMarks)
+
+def start():
+    while len(pixivListNew) != 0:
+        if pixivListNew[0] in pixivListOld:
+            del pixivListNew[0]
+        else:
+            pid = pixivListNew[0]
+            scanningMemberillust(pid)
+            # pixiv.pixivListOld.append(pid)
+            del pixivListNew[0]
+            # pixiv.scanningBookMark(pid)
+        if int(time.strftime("%H", time.localtime())) <= 23:
+            break
+
+if __name__ == '__main__':
+    if login() is True:
+        pixivListNew.append("34637")
+        start()
+    else:
+        print("Login error...")

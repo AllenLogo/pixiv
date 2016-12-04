@@ -1,9 +1,7 @@
 #-*- coding:utf-8 -*-
 
-#三方库
 import requests
 
-#请求头
 headerModel = {
     'Accept - Encoding': 'gzip, deflate',
     'Accept-Language': 'zh-CN',
@@ -15,7 +13,7 @@ downLoadHead = {
 ':authority': 'i.pximg.net',
 ':method': 'GET',
 ':path': '/img-master/img/2016/10/01/21/50/20/59256176_p0_master1200.jpg',
-':scheme': 'https',
+':scheme': 'http',
 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
 'accept-encoding': 'gzip, deflate, sdch, br',
 'accept-language': 'zh-CN,zh;q=0.8',
@@ -38,21 +36,19 @@ downLoadHead1 = {
 'Referer': 'http://www.pixiv.net/member_illust.php?mode=manga_big&illust_id={imgid}&page=0',
 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36'
 }
-#session
 session = requests.session()
 
-#GET请求
 def GET(url, Myheaders=headerModel):
     try:
         HTMLPage = session.get(url, headers=Myheaders, timeout=1000)
         return HTMLPage
     except Exception as value:
-        print("%s_%s" % ("GET", value))
+        GET(url, Myheaders=Myheaders)
+        raise
 
-#POST请求
 def POST(url, postData={}, headers=headerModel):
     try:
         HTMLPage = session.post(url, data=postData, headers=headers, timeout=1000)
         return HTMLPage
     except Exception as value:
-        print("%s_%s" % ("POST", value))
+        POST(url, postData=postData, headers=headers)

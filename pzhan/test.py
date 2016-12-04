@@ -20,33 +20,15 @@
 import os
 from PIL import Image
 
-def getFileList(p):
-    p = str(p)
-    if p == "":
-        return []
-    a = os.listdir(p)
-    b = [x for x in a if os.path.isfile(p + x)]
-    return b
+# def getFileList(p):
+#     p = str(p)
+#     if p == "":
+#         return []
+#     a = os.listdir(p)
+#     b = [x for x in a if os.path.isfile(p + x)]
+#     return b
 
-
-fileList = getFileList("C:\\data\\\pixiv\\")
-# for fs in fileList:
-#     try:
-#         f = open("C:\\data\\\pixiv\\"+fs, "rb")
-#         im = Image.open(f)
-#         f.close()
-#         x, y = im.size
-#     except:
-#         f.close()
-#         os.remove("C:\\data\\\pixiv\\"+fs)
-
-# im = Image.open("C:\\data\\\pixiv\\57081668.jpg")
-# print(im.size)
-
-f = open("C:\\data\\\pixiv\\64180.jpg", "ab")
-
-print(os.path.getsize("C:\\data\\\pixiv\\64180.jpg"))
-
-im = Image.open("C:\\data\\\pixiv\\64180.jpg")
-x, y=im.size
-print(x*y)
+try:
+    print(1/0)
+except Exception as e:
+    print(str(e))

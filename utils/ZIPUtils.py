@@ -3,12 +3,6 @@ import os
 import zipfile
 
 def zip_dir(dirname, zipfilename):
-    """
-    | ##@函数目的: 压缩指定目录为zip文件
-    | ##@参数说明：dirname为指定的目录，zipfilename为压缩后的zip文件路径
-    | ##@返回值：无
-    | ##@函数逻辑：
-    """
     filelist = []
     if os.path.isfile(dirname):
         filelist.append(dirname)
