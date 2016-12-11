@@ -88,7 +88,7 @@ def getMemberillustV2(memberillusturl, pid, page, soup=None):
             elif imgClasss == 'work_workmultiple':
                 work_workmultipleStep1("%s%s" % (indexurl, illustA['href']), pid, imgPid)
         except Exception as error:
-            print("Error", str(error))
+            print("getMemberillustV2 function Error:", str(error))
     page += 1
     getMemberillustV2(memberillusturlModel.replace("{id}", pid).replace("{page}", str(page)), pid, page)
 

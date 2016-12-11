@@ -18,17 +18,7 @@ def downLoad_HTMLPage(url, pid):
     with open("%s.txt" % pid, "w", encoding="utf-8") as f:
         f.write(HTML_page.text)
 
-@MyException.raiseException
-def downLoad_HTMLImg(url):
-    return HttpUtils.GET(url)
-
 def downLoad_HTMLImg(url, imgFile, headers):
-    try:
-        resp1 = HttpUtils.GET(url, Myheaders=headers)
-        FileUtils.saveFile_img(imgFile, resp1)
-        resp1.close()
-    except:
-        if FileUtils.exists(imgFile):
-           os.remove(imgFile)
-        downLoad_HTMLImg(url, imgFile, headers)
-        raise
+    resp1 = HttpUtils.GET(url, Myheaders=headers)
+    FileUtils.saveFile_img(imgFile, resp1)
+    resp1.close()
